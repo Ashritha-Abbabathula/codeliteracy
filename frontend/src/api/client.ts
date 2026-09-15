@@ -90,3 +90,28 @@ export function askAssistant(repoId: string, message: string): Promise<Assistant
     body: JSON.stringify({ message }),
   });
 }
+
+// --- Sprint 4: quiz engine -----------------------------------------------------------
+
+export interface QuizPublic {
+  quiz_id: string;
+  concept: string;
+  question: string;
+  options: string[];
+}
+
+export interface QuizAnswerResponse {
+  correct: boolean;
+  correct_index: number;
+}
+
+export function generateQuiz(changeId: string): Promise<QuizPublic> {
+  return request<QuizPublic>(`/api/changes/${changeId}/quiz`, { method: "POST" });
+}
+
+export function submitQuizAnswer(quizId: string, selectedIndex: number): Promise<QuizAnswerResponse> {
+  return request<QuizAnswerResponse>(`/api/quiz/${quizId}/answer`, {
+    method: "POST",
+    body: JSON.stringify({ selected_index: selectedIndex }),
+  });
+}

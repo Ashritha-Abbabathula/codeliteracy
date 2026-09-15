@@ -65,3 +65,24 @@ class AssistantResponse(BaseModel):
     steps: list[AssistantStep]
     files_changed: list[str]
     commit_sha: str | None
+
+
+# --- Sprint 4: quiz engine -----------------------------------------------------------
+
+
+class QuizPublic(BaseModel):
+    """No correct_index here - the client shouldn't see the answer before submitting."""
+
+    quiz_id: str
+    concept: str
+    question: str
+    options: list[str]
+
+
+class QuizAnswerRequest(BaseModel):
+    selected_index: int
+
+
+class QuizAnswerResponse(BaseModel):
+    correct: bool
+    correct_index: int

@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { ApiError, AssistantResponse, askAssistant } from "../api/client";
+import { QuizPanel } from "../components/QuizPanel";
 
 interface Exchange {
   id: number;
@@ -70,6 +71,8 @@ export function AssistantChat() {
                 </p>
               </div>
             )}
+
+            {exchange.response && <QuizPanel changeId={exchange.response.change_id} />}
           </div>
         ))}
       </div>

@@ -203,3 +203,55 @@ pre {
   font-size: 0.8rem;
   margin: 0.5rem 0 0;
 }
+
+.quiz-panel {
+  align-self: flex-start;
+  max-width: 80%;
+  background: rgba(91, 91, 214, 0.08);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-top: -0.25rem;
+}
+
+.quiz-panel h4 {
+  margin: 0 0 0.4rem;
+}
+
+.quiz-options {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.quiz-options li {
+  margin-bottom: 0.4rem;
+}
+
+.quiz-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+}
+
+.quiz-options label.correct {
+  background: rgba(46, 160, 67, 0.2);
+}
+
+.quiz-options label.incorrect {
+  background: rgba(196, 55, 43, 0.2);
+}
+
+.quiz-feedback {
+  font-weight: 600;
+}
+
+.quiz-feedback.correct {
+  color: #2ea043;
+}
+
+.quiz-feedback.incorrect {
+  color: var(--error);
+}
