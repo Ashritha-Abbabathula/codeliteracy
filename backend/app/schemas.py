@@ -83,6 +83,16 @@ class QuizAnswerRequest(BaseModel):
     selected_index: int
 
 
+# --- Sprint 5: resource recommendation & retry --------------------------------------
+
+
+class ResourceRecommendation(BaseModel):
+    title: str
+    description: str
+    url: str
+
+
 class QuizAnswerResponse(BaseModel):
     correct: bool
     correct_index: int
+    resource: ResourceRecommendation | None = None

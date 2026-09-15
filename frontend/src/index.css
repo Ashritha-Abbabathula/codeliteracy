@@ -255,3 +255,23 @@ pre {
 .quiz-feedback.incorrect {
   color: var(--error);
 }
+
+.resource-card {
+  background: rgba(127, 127, 127, 0.1);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin: 0.5rem 0;
+}
+
+.resource-title {
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+
+.resource-card p {
+  margin: 0 0 0.4rem;
+}
+
+.resource-card a {
+  color: var(--accent);
+}

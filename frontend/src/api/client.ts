@@ -100,9 +100,16 @@ export interface QuizPublic {
   options: string[];
 }
 
+export interface ResourceRecommendation {
+  title: string;
+  description: string;
+  url: string;
+}
+
 export interface QuizAnswerResponse {
   correct: boolean;
   correct_index: number;
+  resource: ResourceRecommendation | null;
 }
 
 export function generateQuiz(changeId: string): Promise<QuizPublic> {
@@ -114,4 +121,10 @@ export function submitQuizAnswer(quizId: string, selectedIndex: number): Promise
     method: "POST",
     body: JSON.stringify({ selected_index: selectedIndex }),
   });
+}
+
+// --- Sprint 5: retry after reviewing a resource -------------------------------------
+
+export function retryQuiz(quizId: string): Promise<QuizPublic> {
+  return request<QuizPublic>(`/api/quiz/${quizId}/retry`, { method: "POST" });
 }

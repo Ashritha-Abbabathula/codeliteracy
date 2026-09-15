@@ -49,14 +49,14 @@ class AssistantChange(Base):
 
 
 class Quiz(Base):
-    """FR8: one multiple-choice question targeting the concept behind a given
-    AssistantChange. At most one per change - generation is cached like everything
-    else that costs an LLM call."""
+    """FR8: a multiple-choice question targeting the concept behind a given
+    AssistantChange. The first one is cached; FR10's retry flow adds a fresh
+    question (same concept) for each retake, so a change can have several."""
 
     __tablename__ = "quizzes"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
-    change_id: Mapped[str] = mapped_column(String(32), index=True, unique=True)
+    change_id: Mapped[str] = mapped_column(String(32), index=True)
     concept: Mapped[str] = mapped_column(String(200))
     question: Mapped[str] = mapped_column(Text)
     options_json: Mapped[str] = mapped_column(Text)
