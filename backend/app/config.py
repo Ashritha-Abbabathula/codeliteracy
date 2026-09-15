@@ -7,14 +7,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    anthropic_api_key: str = ""
+    gemini_api_key: str = ""
     github_token: str = ""
     database_url: str = "sqlite:///./data/codeliteracy.db"
     workspace_dir: str = "./workspace"
     frontend_origin: str = "http://localhost:5173"
 
     # Model used for every LLM call (explanations, assistant, quizzes, resources).
-    llm_model: str = "claude-sonnet-5"
+    # Gemini 2.5 Flash has a generous free tier (no billing required) and supports
+    # both JSON-mode output and function calling, which is all CodeLiteracy needs.
+    llm_model: str = "gemini-2.5-flash"
 
 
 @lru_cache

@@ -3,9 +3,7 @@ the user was just exposed to."""
 
 import json
 
-from anthropic import Anthropic
-
-from app.config import get_settings
+from app.services.llm_client import LLMCallError, LLMNotConfiguredError, json_completion
 
 _SYSTEM_PROMPT = """\
 You are CodeLiteracy's quiz engine. A developer just had the assistant make a code \
@@ -25,10 +23,6 @@ class QuizError(Exception):
 
 
 def generate_quiz(concept: str, change_summary: str, steps: list[dict]) -> dict:
-    settings = get_settings()
-    if not settings.anthropic_api_key:
-        raise QuizError("ANTHROPIC_API_KEY is not set. Add it to backend/.env to enable quizzes.")
-
     steps_text = "\n".join(f"- {s['action']}: {s['explanation']}" for s in steps)
     user_prompt = (
         f"Concept to quiz: {concept}\n\n"
@@ -36,14 +30,10 @@ def generate_quiz(concept: str, change_summary: str, steps: list[dict]) -> dict:
         f"Steps taken:\n{steps_text or '(none recorded)'}"
     )
 
-    client = Anthropic(api_key=settings.anthropic_api_key)
-    message = client.messages.create(
-        model=settings.llm_model,
-        max_tokens=1024,
-        system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_prompt}],
-    )
-    raw_text = "".join(block.text for block in message.content if block.type == "text")
+    try:
+        raw_text = json_completion(_SYSTEM_PROMPT, user_prompt, max_tokens=1024)
+    except (LLMNotConfiguredError, LLMCallError) as exc:
+        raise QuizError(str(exc)) from exc
 
     try:
         parsed = json.loads(raw_text)

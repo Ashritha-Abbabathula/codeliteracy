@@ -9,12 +9,13 @@ on the host. That's a narrower "carries out the commands and code changes needed
 than literal shell access, but it's the safe version of the same capability.
 """
 
-import json
 from pathlib import Path
 
-from anthropic import Anthropic
+from google.genai import types
+from google.genai.errors import APIError
 
 from app.config import get_settings
+from app.services.llm_client import LLMNotConfiguredError, get_client, require_api_key
 
 MAX_TOOL_ITERATIONS = 12
 MAX_FILE_BYTES = 200_000
@@ -40,29 +41,29 @@ must name the single main software-engineering concept this change illustrates \
 (e.g. "SQL parameterization", "list comprehensions", "dependency injection"), short \
 enough to quiz someone on."""
 
-_TOOLS = [
-    {
-        "name": "list_files",
-        "description": "List files and directories directly under a path in the repo (non-recursive).",
-        "input_schema": {
+_FUNCTION_DECLARATIONS = [
+    types.FunctionDeclaration(
+        name="list_files",
+        description="List files and directories directly under a path in the repo (non-recursive).",
+        parameters={
             "type": "object",
             "properties": {"path": {"type": "string", "description": "Path relative to repo root; '' for root."}},
             "required": ["path"],
         },
-    },
-    {
-        "name": "read_file",
-        "description": "Read the full contents of a file in the repo.",
-        "input_schema": {
+    ),
+    types.FunctionDeclaration(
+        name="read_file",
+        description="Read the full contents of a file in the repo.",
+        parameters={
             "type": "object",
             "properties": {"path": {"type": "string", "description": "Path relative to repo root."}},
             "required": ["path"],
         },
-    },
-    {
-        "name": "write_file",
-        "description": "Create or overwrite a file in the repo with the given content.",
-        "input_schema": {
+    ),
+    types.FunctionDeclaration(
+        name="write_file",
+        description="Create or overwrite a file in the repo with the given content.",
+        parameters={
             "type": "object",
             "properties": {
                 "path": {"type": "string", "description": "Path relative to repo root."},
@@ -70,11 +71,11 @@ _TOOLS = [
             },
             "required": ["path", "content"],
         },
-    },
-    {
-        "name": "submit_result",
-        "description": "Call once, when the change is complete, to report what was done.",
-        "input_schema": {
+    ),
+    types.FunctionDeclaration(
+        name="submit_result",
+        description="Call once, when the change is complete, to report what was done.",
+        parameters={
             "type": "object",
             "properties": {
                 "summary": {"type": "string", "description": "1-2 sentence summary of the change."},
@@ -93,8 +94,10 @@ _TOOLS = [
             },
             "required": ["summary", "concept", "steps"],
         },
-    },
+    ),
 ]
+
+_TOOL = types.Tool(function_declarations=_FUNCTION_DECLARATIONS)
 
 
 class AssistantError(Exception):
@@ -143,39 +146,45 @@ def _execute_tool(name: str, tool_input: dict, repo_root: Path, files_changed: l
 
 def run_assistant(repo_path: str, user_request: str) -> dict:
     """Returns {"summary", "concept", "steps": [...], "files_changed": [...]}."""
-    settings = get_settings()
-    if not settings.anthropic_api_key:
-        raise AssistantError("ANTHROPIC_API_KEY is not set. Add it to backend/.env to enable the assistant.")
+    try:
+        require_api_key()
+    except LLMNotConfiguredError as exc:
+        raise AssistantError(str(exc)) from exc
 
+    settings = get_settings()
     repo_root = Path(repo_path)
-    client = Anthropic(api_key=settings.anthropic_api_key)
+    client = get_client()
     files_changed: list[str] = []
 
-    messages: list[dict] = [{"role": "user", "content": f"Request: {user_request}"}]
+    contents: list[types.Content] = [
+        types.Content(role="user", parts=[types.Part(text=f"Request: {user_request}")])
+    ]
+    config = types.GenerateContentConfig(system_instruction=_SYSTEM_PROMPT, tools=[_TOOL], max_output_tokens=4096)
 
     for _ in range(MAX_TOOL_ITERATIONS):
-        response = client.messages.create(
-            model=settings.llm_model,
-            max_tokens=4096,
-            system=_SYSTEM_PROMPT,
-            tools=_TOOLS,
-            messages=messages,
-        )
-        messages.append({"role": "assistant", "content": response.content})
+        try:
+            response = client.models.generate_content(model=settings.llm_model, contents=contents, config=config)
+        except APIError as exc:
+            raise AssistantError(f"Gemini API call failed: {exc}") from exc
+
+        candidate = response.candidates[0] if response.candidates else None
+        if candidate is None or candidate.content is None or not candidate.content.parts:
+            raise AssistantError("The assistant returned an empty response. Try rephrasing the request.")
+        contents.append(candidate.content)
+
+        function_calls = [part.function_call for part in candidate.content.parts if part.function_call]
 
         submitted = None
-        tool_results = []
-        for block in response.content:
-            if block.type != "tool_use":
-                continue
-            if block.name == "submit_result":
-                submitted = block.input
+        response_parts = []
+        for call in function_calls:
+            if call.name == "submit_result":
+                submitted = call.args or {}
                 continue
             try:
-                output = _execute_tool(block.name, block.input, repo_root, files_changed)
+                output = _execute_tool(call.name, call.args or {}, repo_root, files_changed)
             except AssistantError as exc:
                 output = f"Error: {exc}"
-            tool_results.append({"type": "tool_result", "tool_use_id": block.id, "content": output})
+            response_parts.append(types.Part.from_function_response(name=call.name, response={"result": output}))
 
         if submitted is not None:
             return {
@@ -185,11 +194,11 @@ def run_assistant(repo_path: str, user_request: str) -> dict:
                 "files_changed": sorted(set(files_changed)),
             }
 
-        if response.stop_reason != "tool_use" or not tool_results:
+        if not function_calls:
             raise AssistantError(
                 "The assistant stopped without submitting a result. Try rephrasing the request."
             )
 
-        messages.append({"role": "user", "content": tool_results})
+        contents.append(types.Content(role="user", parts=response_parts))
 
     raise AssistantError("The assistant used too many steps without finishing. Try a smaller request.")

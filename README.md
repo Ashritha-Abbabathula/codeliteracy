@@ -11,8 +11,8 @@ commit, matching the SRS's preliminary schedule).
 
 ## Architecture
 
-- **`backend/`** — FastAPI + SQLAlchemy (SQLite). Clones/parses repos, talks to the Anthropic API
-  for explanations/assistant/quiz generation, stores notebook entries.
+- **`backend/`** — FastAPI + SQLAlchemy (SQLite). Clones/parses repos, talks to the Gemini API
+  (free tier) for explanations/assistant/quiz generation, stores notebook entries.
 - **`frontend/`** — React + TypeScript (Vite). Chat interface, dependency-graph viewer, quiz panel,
   notebook view.
 
@@ -36,7 +36,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate   # Windows
 pip install -r requirements.txt
-copy .env.example .env   # then fill in ANTHROPIC_API_KEY (and GITHUB_TOKEN if you hit rate limits)
+copy .env.example .env   # then fill in GEMINI_API_KEY (free: https://aistudio.google.com/apikey)
 uvicorn app.main:app --reload --port 8000
 ```
 

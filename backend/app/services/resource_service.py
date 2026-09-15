@@ -5,9 +5,7 @@ URL) rather than trusting an LLM-generated URL, which can point nowhere."""
 import json
 from urllib.parse import quote_plus
 
-from anthropic import Anthropic
-
-from app.config import get_settings
+from app.services.llm_client import LLMCallError, LLMNotConfiguredError, json_completion
 
 _SYSTEM_PROMPT = """\
 A developer just answered a quiz question wrong. Suggest what they should read up on \
@@ -26,18 +24,12 @@ class ResourceError(Exception):
 
 
 def recommend_resource(concept: str, question: str) -> dict:
-    settings = get_settings()
-    if not settings.anthropic_api_key:
-        raise ResourceError("ANTHROPIC_API_KEY is not set. Add it to backend/.env to enable resources.")
+    user_prompt = f"Concept: {concept}\nQuestion they missed: {question}"
 
-    client = Anthropic(api_key=settings.anthropic_api_key)
-    message = client.messages.create(
-        model=settings.llm_model,
-        max_tokens=512,
-        system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": f"Concept: {concept}\nQuestion they missed: {question}"}],
-    )
-    raw_text = "".join(block.text for block in message.content if block.type == "text")
+    try:
+        raw_text = json_completion(_SYSTEM_PROMPT, user_prompt, max_tokens=512)
+    except (LLMNotConfiguredError, LLMCallError) as exc:
+        raise ResourceError(str(exc)) from exc
 
     try:
         parsed = json.loads(raw_text)

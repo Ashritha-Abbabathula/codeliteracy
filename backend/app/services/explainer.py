@@ -5,10 +5,8 @@ source, not just filenames."""
 import json
 from pathlib import Path
 
-from anthropic import Anthropic
-
-from app.config import get_settings
 from app.services.dependency_graph import Graph
+from app.services.llm_client import LLMCallError, LLMNotConfiguredError, json_completion
 
 # Keep prompt size (and LLM cost) bounded: explain the most structurally important
 # files first - the ones with the most in/out edges are the ones most worth
@@ -79,22 +77,13 @@ def _build_prompt(repo_path: str, graph: Graph) -> str:
 
 
 def generate_explanations(repo_path: str, graph: Graph) -> dict:
-    settings = get_settings()
-    if not settings.anthropic_api_key:
-        raise ExplanationError(
-            "ANTHROPIC_API_KEY is not set. Add it to backend/.env to enable explanations."
-        )
     if not graph.nodes:
         return {"overview": "This repository has no Python files to explain.", "files": []}
 
-    client = Anthropic(api_key=settings.anthropic_api_key)
-    message = client.messages.create(
-        model=settings.llm_model,
-        max_tokens=4096,
-        system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": _build_prompt(repo_path, graph)}],
-    )
-    raw_text = "".join(block.text for block in message.content if block.type == "text")
+    try:
+        raw_text = json_completion(_SYSTEM_PROMPT, _build_prompt(repo_path, graph), max_tokens=4096)
+    except (LLMNotConfiguredError, LLMCallError) as exc:
+        raise ExplanationError(str(exc)) from exc
 
     try:
         parsed = json.loads(raw_text)
