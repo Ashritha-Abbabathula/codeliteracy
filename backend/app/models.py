@@ -62,3 +62,20 @@ class Quiz(Base):
     options_json: Mapped[str] = mapped_column(Text)
     correct_index: Mapped[int]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class NotebookEntry(Base):
+    """FR11 + FR12: a concept the user answered correctly, kept for later review.
+    CodeLiteracy is a single-user local tool (no login in this version - see the SRS's
+    "single user role" in General Description), so this notebook belongs to whoever is
+    running this instance rather than to a specific authenticated account."""
+
+    __tablename__ = "notebook_entries"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    quiz_id: Mapped[str] = mapped_column(String(32), unique=True)
+    concept: Mapped[str] = mapped_column(String(200))
+    question: Mapped[str] = mapped_column(Text)
+    summary: Mapped[str] = mapped_column(Text)
+    repo_name: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

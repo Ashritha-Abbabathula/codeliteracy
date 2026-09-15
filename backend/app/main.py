@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db import init_db
-from app.routers import assistant, quiz, repo
+from app.routers import assistant, notebook, quiz, repo
 
 app = FastAPI(title="CodeLiteracy API")
 
@@ -24,6 +24,7 @@ def on_startup() -> None:
 app.include_router(repo.router)
 app.include_router(assistant.router)
 app.include_router(quiz.router)
+app.include_router(notebook.router)
 
 
 @app.get("/api/health")

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -96,3 +98,15 @@ class QuizAnswerResponse(BaseModel):
     correct: bool
     correct_index: int
     resource: ResourceRecommendation | None = None
+
+
+# --- Sprint 6: learning notebook ------------------------------------------------------
+
+
+class NotebookEntryPublic(BaseModel):
+    id: str
+    concept: str
+    question: str
+    summary: str
+    repo_name: str
+    created_at: datetime

@@ -128,3 +128,19 @@ export function submitQuizAnswer(quizId: string, selectedIndex: number): Promise
 export function retryQuiz(quizId: string): Promise<QuizPublic> {
   return request<QuizPublic>(`/api/quiz/${quizId}/retry`, { method: "POST" });
 }
+
+// --- Sprint 6: learning notebook ----------------------------------------------------
+
+export interface NotebookEntry {
+  id: string;
+  concept: string;
+  question: string;
+  summary: string;
+  repo_name: string;
+  created_at: string;
+}
+
+export function getNotebook(query?: string): Promise<NotebookEntry[]> {
+  const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
+  return request<NotebookEntry[]>(`/api/notebook${suffix}`);
+}

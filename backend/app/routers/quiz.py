@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import AssistantChange, Quiz
+from app.models import AssistantChange, NotebookEntry, Quiz, Repository
 from app.schemas import QuizAnswerRequest, QuizAnswerResponse, QuizPublic
 from app.services.quiz_service import QuizError, generate_quiz
 from app.services.resource_service import ResourceError, recommend_resource
@@ -47,6 +47,29 @@ def _generate_for_change(db: Session, change: AssistantChange) -> Quiz:
     return quiz
 
 
+def _save_to_notebook(db: Session, quiz: Quiz) -> None:
+    """FR11: a correct answer gets written into the learning notebook. Idempotent on
+    quiz_id, so re-submitting the same already-answered quiz doesn't duplicate it."""
+    if db.scalar(select(NotebookEntry).where(NotebookEntry.quiz_id == quiz.id)) is not None:
+        return
+
+    change = db.get(AssistantChange, quiz.change_id)
+    if change is None:
+        return
+    repository = db.get(Repository, change.repo_id)
+
+    db.add(
+        NotebookEntry(
+            quiz_id=quiz.id,
+            concept=quiz.concept,
+            question=quiz.question,
+            summary=change.summary,
+            repo_name=repository.name if repository else "unknown repo",
+        )
+    )
+    db.commit()
+
+
 @router.post("/changes/{change_id}/quiz", response_model=QuizPublic)
 def get_or_create_quiz(change_id: str, db: Session = Depends(get_db)) -> QuizPublic:
     """FR8: generate a quiz for the concept behind this change (cached after the
@@ -69,6 +92,10 @@ def answer_quiz(quiz_id: str, payload: QuizAnswerRequest, db: Session = Depends(
         raise HTTPException(status_code=404, detail="Quiz not found.")
 
     correct = payload.selected_index == quiz.correct_index
+
+    if correct:
+        _save_to_notebook(db, quiz)
+
     resource = None
     if not correct:
         try:
