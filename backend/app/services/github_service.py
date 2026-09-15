@@ -5,7 +5,7 @@ import re
 import uuid
 from pathlib import Path
 
-from git import GitCommandError, Repo
+from git import GitCommandError, InvalidGitRepositoryError, Repo
 
 from app.config import get_settings
 
@@ -54,3 +54,17 @@ def connect_repository(source: str) -> tuple[str, str]:
     if not local_path.is_dir():
         raise RepoConnectionError(f"'{source}' is not a GitHub URL or an existing local folder.")
     return local_path.name, str(local_path)
+
+
+def commit_changes(repo_path: str, message: str) -> str | None:
+    """FR6 (git tracking of assistant changes). Returns the new commit's SHA, or None
+    if the folder isn't a git repo, or nothing actually changed."""
+    try:
+        repo = Repo(repo_path)
+    except InvalidGitRepositoryError:
+        return None
+    if not repo.is_dirty(untracked_files=True):
+        return None
+    repo.git.add(A=True)
+    commit = repo.index.commit(message)
+    return commit.hexsha

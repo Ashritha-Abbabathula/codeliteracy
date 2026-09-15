@@ -44,3 +44,24 @@ class FileExplanation(BaseModel):
 class RepoExplanation(BaseModel):
     overview: str
     files: list[FileExplanation]
+
+
+# --- Sprint 3: AI coding assistant --------------------------------------------------
+
+
+class AssistantRequest(BaseModel):
+    message: str
+
+
+class AssistantStep(BaseModel):
+    action: str
+    explanation: str
+
+
+class AssistantResponse(BaseModel):
+    change_id: str
+    summary: str
+    concept: str
+    steps: list[AssistantStep]
+    files_changed: list[str]
+    commit_sha: str | None
