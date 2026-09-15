@@ -34,14 +34,19 @@ def json_completion(system_prompt: str, user_prompt: str, max_tokens: int = 4096
     JSON output, so callers don't need to strip markdown fences or hope the model
     followed instructions."""
     require_api_key()
+    client = get_client()  # keep a strong reference: a throwaway client can be
+    # garbage-collected mid-call, closing its transport before the request completes.
     try:
-        response = get_client().models.generate_content(
+        response = client.models.generate_content(
             model=get_settings().llm_model,
             contents=user_prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
                 response_mime_type="application/json",
                 max_output_tokens=max_tokens,
+                # These are short, well-specified JSON tasks - extended thinking just
+                # burns free-tier budget (SRS design constraint) without improving them.
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
     except APIError as exc:

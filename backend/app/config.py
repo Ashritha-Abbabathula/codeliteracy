@@ -14,9 +14,10 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
 
     # Model used for every LLM call (explanations, assistant, quizzes, resources).
-    # Gemini 2.5 Flash has a generous free tier (no billing required) and supports
-    # both JSON-mode output and function calling, which is all CodeLiteracy needs.
-    llm_model: str = "gemini-2.5-flash"
+    # The "flash-lite" tier has a much roomier free-tier rate limit than plain Flash
+    # models (the assistant's tool loop alone can need several calls per request),
+    # while still supporting JSON-mode output and function calling.
+    llm_model: str = "gemini-3.1-flash-lite"
 
 
 @lru_cache

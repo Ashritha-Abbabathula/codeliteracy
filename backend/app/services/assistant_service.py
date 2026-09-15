@@ -105,7 +105,11 @@ class AssistantError(Exception):
 
 
 def _safe_path(repo_root: Path, rel_path: str) -> Path:
-    resolved = (repo_root / rel_path).resolve()
+    # A leading slash means "repo root" here, not "filesystem root" - without this,
+    # pathlib's `/` operator treats an absolute-looking string as replacing repo_root
+    # entirely (e.g. repo_root / "/" resolves to the OS root), so a model that
+    # (reasonably) calls list_files(path="/") gets rejected as if it tried to escape.
+    resolved = (repo_root / rel_path.lstrip("/\\")).resolve()
     if repo_root.resolve() not in resolved.parents and resolved != repo_root.resolve():
         raise AssistantError(f"Refused to access path outside the repo: {rel_path}")
     if ".git" in resolved.parts:
@@ -159,7 +163,14 @@ def run_assistant(repo_path: str, user_request: str) -> dict:
     contents: list[types.Content] = [
         types.Content(role="user", parts=[types.Part(text=f"Request: {user_request}")])
     ]
-    config = types.GenerateContentConfig(system_instruction=_SYSTEM_PROMPT, tools=[_TOOL], max_output_tokens=4096)
+    config = types.GenerateContentConfig(
+        system_instruction=_SYSTEM_PROMPT,
+        tools=[_TOOL],
+        max_output_tokens=4096,
+        # The multi-step tool loop already gives the model room to reason across
+        # turns; extended thinking on top of that just burns free-tier budget.
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
+    )
 
     for _ in range(MAX_TOOL_ITERATIONS):
         try:
