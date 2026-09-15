@@ -1,15 +1,15 @@
 import { FormEvent, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { ApiError, connectRepo, RepoConnectResponse } from "../api/client";
+import { ApiError, connectRepo } from "../api/client";
 
-/** FR1 + FR2 + (temporary) FR3 stand-in: connect a repo and see its parsed
- * dependency graph. Sprint 2 replaces the raw JSON dump below with an actual
- * flowchart viewer and plain-language explanations. */
+/** FR1 + FR2: connect a repo (clone a GitHub URL, or link a local path) and parse its
+ * dependency graph. On success, hands off to RepoView for the flowchart + explanations. */
 export function RepoConnect() {
   const [source, setSource] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<RepoConnectResponse | null>(null);
+  const navigate = useNavigate();
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -18,10 +18,10 @@ export function RepoConnect() {
     setLoading(true);
     setError(null);
     try {
-      setResult(await connectRepo(source.trim()));
+      const result = await connectRepo(source.trim());
+      navigate(`/repo/${result.repo_id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong connecting the repo.");
-      setResult(null);
     } finally {
       setLoading(false);
     }
@@ -47,15 +47,6 @@ export function RepoConnect() {
       </form>
 
       {error && <p className="error">{error}</p>}
-
-      {result && (
-        <div className="result">
-          <h3>
-            {result.name} — {result.node_count} modules, {result.edge_count} dependencies
-          </h3>
-          <pre>{JSON.stringify(result.graph, null, 2)}</pre>
-        </div>
-      )}
     </section>
   );
 }

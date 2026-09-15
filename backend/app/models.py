@@ -27,4 +27,5 @@ class Repository(Base):
     name: Mapped[str] = mapped_column(String(200))
     local_path: Mapped[str] = mapped_column(String(1000))
     graph_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    explanations_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     connected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

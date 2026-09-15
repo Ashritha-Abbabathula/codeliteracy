@@ -98,3 +98,52 @@ pre {
   max-height: 400px;
   font-size: 0.85rem;
 }
+
+:root {
+  --edge: #9a9aa8;
+}
+
+.graph-scroll {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 1rem 0;
+  max-height: 480px;
+}
+
+.graph-node rect {
+  fill: rgba(127, 127, 127, 0.12);
+  stroke: var(--border);
+  stroke-width: 1;
+  cursor: pointer;
+}
+
+.graph-node text {
+  fill: currentColor;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.graph-node.selected rect {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.graph-node.selected text {
+  fill: white;
+}
+
+.graph-node.neighbor rect {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.explain-panel {
+  margin-top: 1.5rem;
+}
+
+.file-explanation {
+  background: rgba(127, 127, 127, 0.1);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}

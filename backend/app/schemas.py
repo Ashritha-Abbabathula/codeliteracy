@@ -31,3 +31,16 @@ class RepoConnectResponse(BaseModel):
     node_count: int
     edge_count: int
     graph: DependencyGraph
+
+
+# --- Sprint 2: plain-language explanations -----------------------------------------
+
+
+class FileExplanation(BaseModel):
+    path: str
+    explanation: str
+
+
+class RepoExplanation(BaseModel):
+    overview: str
+    files: list[FileExplanation]

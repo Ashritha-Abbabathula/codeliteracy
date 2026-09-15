@@ -51,3 +51,19 @@ export function connectRepo(source: string): Promise<RepoConnectResponse> {
 export function getRepoGraph(repoId: string): Promise<DependencyGraph> {
   return request<DependencyGraph>(`/api/repo/${repoId}/graph`);
 }
+
+// --- Sprint 2: plain-language explanations -----------------------------------------
+
+export interface FileExplanation {
+  path: string;
+  explanation: string;
+}
+
+export interface RepoExplanation {
+  overview: string;
+  files: FileExplanation[];
+}
+
+export function explainRepo(repoId: string): Promise<RepoExplanation> {
+  return request<RepoExplanation>(`/api/repo/${repoId}/explain`, { method: "POST" });
+}
