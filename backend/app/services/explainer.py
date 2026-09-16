@@ -76,6 +76,47 @@ def _build_prompt(repo_path: str, graph: Graph) -> str:
     )
 
 
+_SINGLE_FILE_SYSTEM_PROMPT = """\
+You are CodeLiteracy's repository explainer. Explain what this one file does to a \
+developer who has never seen it before, grounded in its actual code. Respond with \
+strict JSON only, matching exactly: {"explanation": "one or two plain-language \
+sentences"}. Do not wrap the JSON in markdown fences."""
+
+
+def generate_file_explanation(repo_path: str, rel_path: str) -> str:
+    """On-demand explanation for a single file - used when a file was left out of the
+    batched explanation (MAX_FILES_EXPLAINED) because it isn't well-connected in the
+    dependency graph, but the user clicked it anyway."""
+    root = Path(repo_path).resolve()
+    target = (root / rel_path).resolve()
+    if root not in target.parents and target != root:
+        raise ExplanationError(f"Refused to read path outside the repo: {rel_path}")
+
+    try:
+        content = target.read_text(encoding="utf-8", errors="ignore")
+    except OSError as exc:
+        raise ExplanationError(f"Could not read '{rel_path}': {exc}") from exc
+
+    truncated = content[:MAX_CHARS_PER_FILE]
+    if len(content) > MAX_CHARS_PER_FILE:
+        truncated += "\n# ... truncated ..."
+    prompt = f"### {rel_path}\n```python\n{truncated}\n```"
+
+    try:
+        raw_text = json_completion(_SINGLE_FILE_SYSTEM_PROMPT, prompt, max_tokens=256)
+    except (LLMNotConfiguredError, LLMCallError) as exc:
+        raise ExplanationError(str(exc)) from exc
+
+    try:
+        parsed = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise ExplanationError("The explainer LLM returned a response that wasn't valid JSON.") from exc
+
+    if "explanation" not in parsed:
+        raise ExplanationError("The explainer LLM response was missing the 'explanation' field.")
+    return parsed["explanation"]
+
+
 def generate_explanations(repo_path: str, graph: Graph) -> dict:
     if not graph.nodes:
         return {"overview": "This repository has no Python files to explain.", "files": []}

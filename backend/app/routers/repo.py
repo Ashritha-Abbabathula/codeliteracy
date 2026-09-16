@@ -5,9 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Repository
-from app.schemas import DependencyGraph, RepoConnectRequest, RepoConnectResponse, RepoExplanation
+from app.schemas import (
+    DependencyGraph,
+    ExplainFileRequest,
+    FileExplanation,
+    RepoConnectRequest,
+    RepoConnectResponse,
+    RepoExplanation,
+)
 from app.services.dependency_graph import Graph, build_dependency_graph
-from app.services.explainer import ExplanationError, generate_explanations
+from app.services.explainer import ExplanationError, generate_explanations, generate_file_explanation
 from app.services.github_service import RepoConnectionError, connect_repository
 
 router = APIRouter(prefix="/api/repo", tags=["repo"])
@@ -80,3 +87,32 @@ def explain(repo_id: str, db: Session = Depends(get_db)) -> RepoExplanation:
     repository.explanations_json = json.dumps(explanation)
     db.commit()
     return RepoExplanation(**explanation)
+
+
+@router.post("/{repo_id}/explain/file", response_model=FileExplanation)
+def explain_file(repo_id: str, payload: ExplainFileRequest, db: Session = Depends(get_db)) -> FileExplanation:
+    """FR4, on demand: a file that didn't make the initial batch (it's less central to
+    the dependency graph) still gets explained the moment someone actually clicks it,
+    rather than a dead-end "no explanation available". Cached into the same
+    explanations_json blob so a repeat click doesn't re-spend LLM budget."""
+    repository = db.get(Repository, repo_id)
+    if repository is None:
+        raise HTTPException(status_code=404, detail="Repository not found.")
+
+    explanation = json.loads(repository.explanations_json) if repository.explanations_json else {
+        "overview": "",
+        "files": [],
+    }
+    for entry in explanation["files"]:
+        if entry["path"] == payload.path:
+            return FileExplanation(**entry)
+
+    try:
+        text = generate_file_explanation(repository.local_path, payload.path)
+    except ExplanationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    explanation["files"].append({"path": payload.path, "explanation": text})
+    repository.explanations_json = json.dumps(explanation)
+    db.commit()
+    return FileExplanation(path=payload.path, explanation=text)

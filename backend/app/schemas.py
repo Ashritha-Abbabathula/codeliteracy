@@ -48,6 +48,10 @@ class RepoExplanation(BaseModel):
     files: list[FileExplanation]
 
 
+class ExplainFileRequest(BaseModel):
+    path: str
+
+
 # --- Sprint 3: AI coding assistant --------------------------------------------------
 
 

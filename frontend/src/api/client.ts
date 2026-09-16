@@ -68,6 +68,13 @@ export function explainRepo(repoId: string): Promise<RepoExplanation> {
   return request<RepoExplanation>(`/api/repo/${repoId}/explain`, { method: "POST" });
 }
 
+export function explainFile(repoId: string, path: string): Promise<FileExplanation> {
+  return request<FileExplanation>(`/api/repo/${repoId}/explain/file`, {
+    method: "POST",
+    body: JSON.stringify({ path }),
+  });
+}
+
 // --- Sprint 3: AI coding assistant --------------------------------------------------
 
 export interface AssistantStep {

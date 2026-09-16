@@ -5,6 +5,7 @@ import {
   ApiError,
   DependencyGraph,
   RepoExplanation,
+  explainFile,
   explainRepo,
   getRepoGraph,
 } from "../api/client";
@@ -20,6 +21,7 @@ export function RepoView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [explaining, setExplaining] = useState(false);
+  const [explainingFile, setExplainingFile] = useState(false);
 
   useEffect(() => {
     if (!repoId) return;
@@ -42,6 +44,20 @@ export function RepoView() {
   }
 
   const selectedExplanation = explanation?.files.find((f) => f.path === selectedId);
+
+  async function handleExplainFile() {
+    if (!repoId || !selectedId || !explanation) return;
+    setExplainingFile(true);
+    setError(null);
+    try {
+      const fileExplanation = await explainFile(repoId, selectedId);
+      setExplanation({ ...explanation, files: [...explanation.files, fileExplanation] });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to explain this file.");
+    } finally {
+      setExplainingFile(false);
+    }
+  }
 
   return (
     <section>
@@ -69,7 +85,19 @@ export function RepoView() {
                 {selectedId && (
                   <div className="file-explanation">
                     <code>{selectedId}</code>
-                    <p>{selectedExplanation?.explanation ?? "No explanation available for this file."}</p>
+                    {selectedExplanation ? (
+                      <p>{selectedExplanation.explanation}</p>
+                    ) : (
+                      <>
+                        <p className="hint">
+                          This file wasn't in the initial batch (it's less connected in the
+                          dependency graph), but you can still get an explanation for it.
+                        </p>
+                        <button onClick={handleExplainFile} disabled={explainingFile}>
+                          {explainingFile ? "Reading the code…" : "Explain this file"}
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </>
