@@ -2,10 +2,9 @@
 concept. The LLM picks what to look up; we build the actual link ourselves (a search
 URL) rather than trusting an LLM-generated URL, which can point nowhere."""
 
-import json
 from urllib.parse import quote_plus
 
-from app.services.llm_client import LLMCallError, LLMNotConfiguredError, json_completion
+from app.services.llm_client import LLMCallError, LLMNotConfiguredError, json_object
 
 _SYSTEM_PROMPT = """\
 A developer just answered a quiz question wrong. Suggest what they should read up on \
@@ -27,16 +26,11 @@ def recommend_resource(concept: str, question: str) -> dict:
     user_prompt = f"Concept: {concept}\nQuestion they missed: {question}"
 
     try:
-        raw_text = json_completion(_SYSTEM_PROMPT, user_prompt, max_tokens=512)
+        parsed = json_object(_SYSTEM_PROMPT, user_prompt, max_tokens=512)
     except (LLMNotConfiguredError, LLMCallError) as exc:
         raise ResourceError(str(exc)) from exc
 
-    try:
-        parsed = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise ResourceError("The resource LLM returned a response that wasn't valid JSON.") from exc
-
-    if not all(key in parsed for key in ("title", "description", "search_query")):
+    if not all(isinstance(parsed.get(key), str) and parsed[key].strip() for key in ("title", "description", "search_query")):
         raise ResourceError("The resource LLM response was missing expected fields.")
 
     return {

@@ -1,0 +1,53 @@
+newman
+
+CodeLiteracy API Tests
+
+→ TC1 - Health check
+  GET http://127.0.0.1:8000/api/health [200 OK, 172B, 25ms]
+  ✓  Status code is 200
+  ✓  Service status is ok
+  ✓  Response contains API version
+  ✓  Response time is below 500 ms
+
+→ TC2 - Guest login
+  POST http://127.0.0.1:8000/api/auth/guest [200 OK, 370B, 38ms]
+  ✓  Status code is 200
+  ✓  A session token is returned
+  ✓  User is marked as guest
+
+→ TC3 - Get current user (with token)
+  GET http://127.0.0.1:8000/api/auth/me [200 OK, 380B, 7ms]
+  ✓  Status code is 200
+  ✓  Token identifies the guest user
+  ✓  Learning stats are returned
+
+→ TC4 - List sample repositories
+  GET http://127.0.0.1:8000/api/repo/samples [200 OK, 916B, 3ms]
+  ✓  Status code is 200
+  ✓  At least two samples are listed
+  ✓  nanoGPT sample is available
+
+→ TC5 - Login with wrong password (negative test)
+  POST http://127.0.0.1:8000/api/auth/login [401 Unauthorized, 197B, 11ms]
+  ✓  Status code is 401 Unauthorized
+  ✓  Clear error message is returned
+
+┌─────────────────────────┬──────────────────┬──────────────────┐
+│                         │         executed │           failed │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              iterations │                1 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│                requests │                5 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│            test-scripts │                5 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│      prerequest-scripts │                0 │                0 │
+├─────────────────────────┼──────────────────┼──────────────────┤
+│              assertions │               15 │                0 │
+├─────────────────────────┴──────────────────┴──────────────────┤
+│ total run duration: 184ms                                     │
+├───────────────────────────────────────────────────────────────┤
+│ total data received: 1.33kB (approx)                          │
+├───────────────────────────────────────────────────────────────┤
+│ average response time: 16ms [min: 3ms, max: 38ms, s.d.: 12ms] │
+└───────────────────────────────────────────────────────────────┘

@@ -1,0 +1,102 @@
+{
+  "info": {
+    "name": "CodeLiteracy API Tests",
+    "description": "Experiment 10 - functional API testing of the CodeLiteracy FastAPI backend. Start the backend first (start.bat or: uvicorn app.main:app --port 8000), then run this collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "TC1 - Health check",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/health" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 200\", function () {",
+        "    pm.response.to.have.status(200);",
+        "});",
+        "pm.test(\"Service status is ok\", function () {",
+        "    pm.expect(pm.response.json().status).to.eql(\"ok\");",
+        "});",
+        "pm.test(\"Response contains API version\", function () {",
+        "    pm.expect(pm.response.json()).to.have.property(\"version\");",
+        "});",
+        "pm.test(\"Response time is below 2 seconds\", function () {",
+        "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+        "});"
+      ]}}]
+    },
+    {
+      "name": "TC2 - Guest login",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/guest" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const body = pm.response.json();",
+        "pm.test(\"Status code is 200\", function () {",
+        "    pm.response.to.have.status(200);",
+        "});",
+        "pm.test(\"A session token is returned\", function () {",
+        "    pm.expect(body.token).to.be.a(\"string\").and.not.be.empty;",
+        "});",
+        "pm.test(\"User is marked as guest\", function () {",
+        "    pm.expect(body.user.is_guest).to.eql(true);",
+        "});",
+        "pm.collectionVariables.set(\"token\", body.token);"
+      ]}}]
+    },
+    {
+      "name": "TC3 - Get current user (with token)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{baseUrl}}/api/auth/me"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const body = pm.response.json();",
+        "pm.test(\"Status code is 200\", function () {",
+        "    pm.response.to.have.status(200);",
+        "});",
+        "pm.test(\"Token identifies the guest user\", function () {",
+        "    pm.expect(body.user.is_guest).to.eql(true);",
+        "});",
+        "pm.test(\"Learning stats are returned\", function () {",
+        "    pm.expect(body.stats).to.have.all.keys(\"repos_count\", \"notebook_count\", \"quizzes_passed\");",
+        "});"
+      ]}}]
+    },
+    {
+      "name": "TC4 - List sample repositories",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/repo/samples" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const body = pm.response.json();",
+        "pm.test(\"Status code is 200\", function () {",
+        "    pm.response.to.have.status(200);",
+        "});",
+        "pm.test(\"At least two samples are listed\", function () {",
+        "    pm.expect(body).to.be.an(\"array\");",
+        "    pm.expect(body.length).to.be.at.least(2);",
+        "});",
+        "pm.test(\"nanoGPT sample is available\", function () {",
+        "    pm.expect(body.map(s => s.id)).to.include(\"sample-nanogpt\");",
+        "});"
+      ]}}]
+    },
+    {
+      "name": "TC5 - Login with wrong password (negative test)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"login_id\": \"no_such_user\",\n  \"password\": \"wrongpass123\"\n}" },
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test(\"Status code is 401 Unauthorized\", function () {",
+        "    pm.response.to.have.status(401);",
+        "});",
+        "pm.test(\"Clear error message is returned\", function () {",
+        "    pm.expect(pm.response.json().detail).to.include(\"Invalid username/email or password\");",
+        "});"
+      ]}}]
+    }
+  ]
+}

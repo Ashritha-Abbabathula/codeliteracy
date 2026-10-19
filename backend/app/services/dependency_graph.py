@@ -10,12 +10,7 @@ from pathlib import Path
 
 import networkx as nx
 
-from app.config import get_settings
-
-_SKIP_DIRS = {
-    ".git", "__pycache__", "node_modules", "venv", ".venv", "dist", "build",
-    ".mypy_cache", ".pytest_cache", "egg-info",
-}
+from app.services.repo_utils import iter_files
 
 
 @dataclass
@@ -32,24 +27,7 @@ class Graph:
 
 
 def _iter_python_files(repo_path: Path):
-    # If a connected repo happens to *contain* CodeLiteracy's own workspace_dir (e.g.
-    # someone connects the CodeLiteracy backend to itself), don't let previously-cloned
-    # repos sitting in there leak into this one's graph. This must NOT trigger for the
-    # normal case where the connected repo *is itself* something cloned into
-    # workspace_dir - there, repo_path is a descendant of workspace_root, not the
-    # other way around, so no exclusion should apply.
-    repo_root = repo_path.resolve()
-    workspace_root = Path(get_settings().workspace_dir).resolve()
-    exclude_workspace = repo_root == workspace_root or repo_root in workspace_root.parents
-
-    for path in repo_path.rglob("*.py"):
-        if any(part in _SKIP_DIRS or part.endswith(".egg-info") for part in path.parts):
-            continue
-        if exclude_workspace:
-            resolved = path.resolve()
-            if resolved == workspace_root or workspace_root in resolved.parents:
-                continue
-        yield path
+    return iter_files(repo_path, suffix=".py")
 
 
 def _to_dotted(rel_path: Path) -> tuple[str, bool]:
@@ -126,7 +104,7 @@ def _extract_edges(module: ParsedModule, tree: ast.AST, dotted_to_rel: dict[str,
 
 
 def build_dependency_graph(repo_path: str) -> Graph:
-    root = Path(repo_path)
+    root = Path(repo_path).resolve()
     modules = _discover_modules(root)
     dotted_to_rel = {m.dotted: m.rel_path for m in modules}
 

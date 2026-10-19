@@ -1,0 +1,300 @@
+{
+  "id": "1fd959d1-40b7-4907-95bb-3f6783958d11",
+  "version": "2.0",
+  "name": "CodeLiteracy UI Tests",
+  "url": "http://localhost:5173",
+  "tests": [
+    {
+      "id": "e602ab12-964e-4fdd-830d-f928419576be",
+      "name": "TC1 - Home page loads",
+      "commands": [
+        {
+          "id": "80fc333c-6a0f-4755-8820-54b6680cc187",
+          "comment": "",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "eb8cac17-dd33-4160-bf59-92aa6409a502",
+          "comment": "",
+          "command": "setWindowSize",
+          "target": "1280x800",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "b7168c1f-086c-4435-a88f-7be12460d230",
+          "comment": "",
+          "command": "assertTitle",
+          "target": "CodeLiteracy",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "3a2f11d2-419f-48cc-ab63-b62c631ee539",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "css=.navbar-brand h1",
+          "targets": [],
+          "value": "5000"
+        },
+        {
+          "id": "6ffb3dd1-1ef4-4685-b57e-a44802588f77",
+          "comment": "",
+          "command": "assertText",
+          "target": "css=.navbar-brand h1",
+          "targets": [],
+          "value": "CodeLiteracy"
+        },
+        {
+          "id": "4cb5a65d-45fb-4050-9fb6-39d52165510c",
+          "comment": "",
+          "command": "assertElementPresent",
+          "target": "css=input[aria-label='Repository URL or folder path']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "d411c029-f303-4175-823a-5a13e8839432",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "css=.sample-card",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "81b7b75f-26a0-478b-9b52-2c603a7193fc",
+          "comment": "",
+          "command": "assertElementPresent",
+          "target": "xpath=//strong[contains(.,'nanoGPT')]",
+          "targets": [],
+          "value": ""
+        }
+      ]
+    },
+    {
+      "id": "dfb7b7c0-cb72-4dd9-ab11-f888fbe7c855",
+      "name": "TC2 - Guest sign-in and logout",
+      "commands": [
+        {
+          "id": "1dd04e1d-17ba-4661-8339-65e9f1e86896",
+          "comment": "",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "87ae1102-3472-4bec-93ca-b2e0c643398a",
+          "comment": "Sign out of any earlier session",
+          "command": "executeScript",
+          "target": "localStorage.removeItem('codeliteracy_token')",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "a8730c22-26df-41d9-adb5-73a7d586700d",
+          "comment": "",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "d68ba027-40dd-491c-8685-bdc3c70b9885",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//button[contains(.,'Sign In / Demo')]",
+          "targets": [],
+          "value": "5000"
+        },
+        {
+          "id": "02216c1d-3bc1-4f32-aa43-376411bd5f0f",
+          "comment": "",
+          "command": "click",
+          "target": "xpath=//button[contains(.,'Sign In / Demo')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "0c1af34a-564d-430c-8936-326cb1d0cbe0",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "css=.modal-card",
+          "targets": [],
+          "value": "5000"
+        },
+        {
+          "id": "95297dd7-2ac9-4166-9bf0-1d3a8896c6d2",
+          "comment": "",
+          "command": "assertText",
+          "target": "css=.modal-header h3",
+          "targets": [],
+          "value": "Sign In to CodeLiteracy"
+        },
+        {
+          "id": "00f58c20-ba33-473f-a9cb-633a6b5b4552",
+          "comment": "",
+          "command": "click",
+          "target": "xpath=//button[contains(.,'Guest Demo')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "91a29995-44a8-4815-8b67-3a2fcc10f904",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "css=.user-badge",
+          "targets": [],
+          "value": "10000"
+        },
+        {
+          "id": "3d7ef4a3-b8f9-48cf-8c5b-5bcbac7f6663",
+          "comment": "",
+          "command": "assertElementPresent",
+          "target": "xpath=//button[contains(.,'Logout')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "983932b1-0161-4115-8d98-e703de080948",
+          "comment": "",
+          "command": "click",
+          "target": "xpath=//button[contains(.,'Logout')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "ba5eda00-a962-4f7f-9560-188f068532ef",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//button[contains(.,'Sign In / Demo')]",
+          "targets": [],
+          "value": "5000"
+        }
+      ]
+    },
+    {
+      "id": "4e8fdc52-809b-4cba-ad4e-5e6864e4afc0",
+      "name": "TC3 - Wrong password shows an error",
+      "commands": [
+        {
+          "id": "2e5b3658-540e-4e25-b963-fc932c68e042",
+          "comment": "",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "c3518845-f524-43d9-a94a-25a17182a81c",
+          "comment": "Sign out of any earlier session",
+          "command": "executeScript",
+          "target": "localStorage.removeItem('codeliteracy_token')",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "7218520c-8e17-4de5-851c-c6ed7c2220f7",
+          "comment": "",
+          "command": "open",
+          "target": "/",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "222feef5-9e5a-490b-821c-698bc2c720a1",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "xpath=//button[contains(.,'Sign In / Demo')]",
+          "targets": [],
+          "value": "5000"
+        },
+        {
+          "id": "5295ba16-59fe-4562-b5b9-e9f28c712796",
+          "comment": "",
+          "command": "click",
+          "target": "xpath=//button[contains(.,'Sign In / Demo')]",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "49bec387-d5fc-4455-88b9-cf7e12a890dd",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "css=.modal-card",
+          "targets": [],
+          "value": "5000"
+        },
+        {
+          "id": "635a70ba-f25a-4246-9ae9-b0187199f379",
+          "comment": "",
+          "command": "type",
+          "target": "css=.modal-card input[type='text']",
+          "targets": [],
+          "value": "no_such_user"
+        },
+        {
+          "id": "7acd3d7b-1695-4f37-b6cb-4dd286106242",
+          "comment": "",
+          "command": "type",
+          "target": "css=.modal-card input[type='password']",
+          "targets": [],
+          "value": "wrongpass123"
+        },
+        {
+          "id": "fd15c2a4-4199-42c3-93f0-9855e39dd950",
+          "comment": "",
+          "command": "click",
+          "target": "css=.modal-card button[type='submit']",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "511cab2d-fc07-4363-8175-d3770df5adde",
+          "comment": "",
+          "command": "waitForElementVisible",
+          "target": "css=.modal-card .quiz-feedback-box",
+          "targets": [],
+          "value": "5000"
+        },
+        {
+          "id": "64e54b66-a03d-4483-b933-4f1b204a8100",
+          "comment": "",
+          "command": "assertElementPresent",
+          "target": "css=.modal-card .quiz-feedback-box",
+          "targets": [],
+          "value": ""
+        },
+        {
+          "id": "7ad569ba-6c28-47c4-9170-ddb3d0433c87",
+          "comment": "",
+          "command": "assertElementNotPresent",
+          "target": "css=.user-badge",
+          "targets": [],
+          "value": ""
+        }
+      ]
+    }
+  ],
+  "suites": [
+    {
+      "id": "a1dc7f6a-83c1-412c-bc60-f97b026cbedd",
+      "name": "CodeLiteracy Suite",
+      "persistSession": false,
+      "parallel": false,
+      "timeout": 300,
+      "tests": [
+        "e602ab12-964e-4fdd-830d-f928419576be",
+        "dfb7b7c0-cb72-4dd9-ab11-f888fbe7c855",
+        "4e8fdc52-809b-4cba-ad4e-5e6864e4afc0"
+      ]
+    }
+  ],
+  "urls": [
+    "http://localhost:5173/"
+  ],
+  "plugins": []
+}
