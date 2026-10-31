@@ -328,6 +328,24 @@ def test_self_sample_is_a_fresh_git_copy_per_connection(client, llm):
     for p in paths:
         assert p.resolve() != _PROJECT_ROOT and (_PROJECT_ROOT / "backend") not in p.resolve().parents
         assert (p / "app" / "main.py").is_file() and not list(p.rglob("__pycache__"))
-        log = subprocess.run(["git", "log", "--format=%an|%s"], cwd=p, capture_output=True, text=True).stdout
+        log = subprocess.run(["git", "log", "--format=%an|%s"], cwd=p, capture_output=True, text=True, encoding="utf-8").stdout
         assert log.strip() == "CodeLiteracy|Snapshot of CodeLiteracy for exploration"  # so AI changes get committed on top
-        assert subprocess.run(["git", "status", "--porcelain"], cwd=p, capture_output=True, text=True).stdout == ""
+        assert subprocess.run(["git", "status", "--porcelain"], cwd=p, capture_output=True, text=True, encoding="utf-8").stdout == ""
+
+
+def test_chat_history_keeps_order_when_messages_share_a_timestamp(client, sample_repo, llm):
+    """A message and its reply can be created in the same clock tick; history must still list them in the order they were saved."""
+    from datetime import datetime, timezone
+
+    from app.db import SessionLocal
+    from app.models import ChatMessage
+
+    repo_id = connect(client, sample_repo)
+    tick = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    with SessionLocal() as db:
+        for i, role in enumerate(["user", "assistant", "user", "assistant"]):
+            # ids run backwards, so neither the id nor luck can give the right order without the tie-breaker
+            db.add(ChatMessage(id=f"m{3 - i}", repo_id=repo_id, user_id=None, role=role, content=str(i), created_at=tick))
+            db.commit()
+    history = client.get(f"/api/repo/{repo_id}/chat/history").json()
+    assert [m["content"] for m in history] == ["0", "1", "2", "3"]

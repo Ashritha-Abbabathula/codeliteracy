@@ -1,7 +1,9 @@
+import threading
+import time
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -13,6 +15,21 @@ def _uuid() -> str:
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+_seq_lock = threading.Lock()
+_last_seq = 0
+
+
+def _next_seq() -> int:
+    """A number that only ever goes up, even when two rows are created within one clock tick.
+
+    created_at alone cannot order rows made in the same instant (Windows' clock ticks about every 15 ms), so
+    rows that must keep their order, like a chat message and its reply, also carry this number."""
+    global _last_seq
+    with _seq_lock:
+        _last_seq = max(_last_seq + 1, time.time_ns())
+        return _last_seq
 
 
 class User(Base):
@@ -153,3 +170,5 @@ class ChatMessage(Base):
     context_type: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "quiz_discussion", "file", "onboarding"
     context_ref: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    # tie-breaker for messages created in the same clock tick; rows saved before this column existed have none
+    seq: Mapped[int | None] = mapped_column(BigInteger, nullable=True, default=_next_seq)

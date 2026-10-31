@@ -50,7 +50,7 @@ def send_chat_message(
     recent = list(db.scalars(
         select(ChatMessage)
         .where(ChatMessage.repo_id == repo_id, owned_by(ChatMessage.user_id, user))
-        .order_by(ChatMessage.created_at.desc())
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.seq.desc())
         .limit(8)
     ))
     history = [(m.role, m.content) for m in reversed(recent)]
@@ -99,7 +99,7 @@ def get_chat_history(
     rows = list(db.scalars(
         select(ChatMessage)
         .where(ChatMessage.repo_id == repo_id, owned_by(ChatMessage.user_id, user))
-        .order_by(ChatMessage.created_at.desc())
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.seq.desc())
         .limit(50)
     ))
     return [
