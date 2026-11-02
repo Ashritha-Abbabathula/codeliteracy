@@ -168,10 +168,10 @@ def test_assistant_endpoint_commits_only_its_own_files(client, sample_repo, scri
     assert len(data["quizzes"]) == 3
     assert all(q["review"] is None and "correct_index" not in q and "explanation" not in q for q in data["quizzes"])
 
-    committed = subprocess.run(["git", "show", "--name-only", "--format=%an|%s", "HEAD"], cwd=sample_repo, capture_output=True, text=True).stdout.split("\n")
+    committed = subprocess.run(["git", "show", "--name-only", "--format=%an|%s", "HEAD"], cwd=sample_repo, capture_output=True, text=True, encoding="utf-8").stdout.split("\n")
     assert committed[0].startswith("CodeLiteracy|CodeLiteracy: Added validation.")
     assert [f for f in committed[1:] if f] == ["app/models.py"]  # not the user's other files
-    status = subprocess.run(["git", "status", "--porcelain"], cwd=sample_repo, capture_output=True, text=True).stdout
+    status = subprocess.run(["git", "status", "--porcelain"], cwd=sample_repo, capture_output=True, text=True, encoding="utf-8").stdout
     assert "store.py" in status and "scratch.txt" in status  # the user's work is still theirs, still uncommitted
 
     # the change's quizzes answer + credit the notebook as a bug-fix entry
@@ -434,3 +434,27 @@ def test_migration_relaxes_constraints_that_old_versions_made_required(tmp_path,
     assert {i["name"] for i in inspect(engine).get_indexes("quizzes")} >= {"ix_quizzes_change_id", "ix_quizzes_repo_id", "ix_quizzes_user_id"}
     assert not [t for t in inspect(engine).get_table_names() if t.endswith("__old")]  # no leftovers
     dbmod.init_db()  # running it again changes nothing
+
+
+def test_old_chat_messages_table_gets_the_order_column(tmp_path, monkeypatch):
+    """Databases made before chat messages had a tie-breaker are upgraded and keep their rows."""
+    import sqlite3
+
+    from sqlalchemy import create_engine, inspect
+
+    from app import db as dbmod
+
+    path = tmp_path / "chat_old.db"
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE chat_messages (id VARCHAR(32) PRIMARY KEY, repo_id VARCHAR(32), user_id VARCHAR(32), role VARCHAR(20), content TEXT, context_type VARCHAR(50), context_ref VARCHAR(500), created_at DATETIME)")
+    con.execute("INSERT INTO chat_messages VALUES ('c1', 'r1', NULL, 'user', 'hello', NULL, NULL, '2026-01-01')")
+    con.commit()
+    con.close()
+
+    engine = create_engine(f"sqlite:///{path.as_posix()}")
+    monkeypatch.setattr(dbmod, "engine", engine)
+    dbmod.init_db()
+
+    assert "seq" in {c["name"] for c in inspect(engine).get_columns("chat_messages")}
+    with engine.connect() as conn:
+        assert conn.exec_driver_sql("SELECT content, seq FROM chat_messages").one() == ("hello", None)

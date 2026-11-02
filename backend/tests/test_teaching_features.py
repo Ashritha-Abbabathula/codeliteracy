@@ -257,7 +257,7 @@ def test_undo_restores_the_files_and_commits(client, sample_repo, scripted, llm)
     body = res.json()
     assert res.status_code == 200 and body["restored"] == ["app/models.py"] and body["commit_sha"]
     assert (sample_repo / "app" / "models.py").read_text() == original
-    log = subprocess.run(["git", "log", "--format=%s", "-2"], cwd=sample_repo, capture_output=True, text=True).stdout.splitlines()
+    log = subprocess.run(["git", "log", "--format=%s", "-2"], cwd=sample_repo, capture_output=True, text=True, encoding="utf-8").stdout.splitlines()
     assert log[0].startswith("CodeLiteracy: undo") and log[1].startswith("CodeLiteracy: Added validation.")
 
     assert client.post(f"/api/changes/{data['change_id']}/undo").status_code == 409  # only once
@@ -279,7 +279,7 @@ def test_undo_refuses_to_overwrite_later_work_and_removes_created_files(client, 
     assert (sample_repo / "app" / "extra.py").is_file()
     assert client.post(f"/api/changes/{created['change_id']}/undo").status_code == 200
     assert not (sample_repo / "app" / "extra.py").exists()
-    status = subprocess.run(["git", "status", "--porcelain", "app/extra.py"], cwd=sample_repo, capture_output=True, text=True).stdout
+    status = subprocess.run(["git", "status", "--porcelain", "app/extra.py"], cwd=sample_repo, capture_output=True, text=True, encoding="utf-8").stdout
     assert status == ""  # the removal was committed too
 
 
