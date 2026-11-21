@@ -94,12 +94,23 @@ on the server, and only a genuinely correct answer reaches the notebook.
 ```bash
 cd backend
 pip install -r requirements-dev.txt
-python -m pytest                 # 67 tests, offline (a scripted fake stands in for Gemini)
+python -m pytest                 # 79 tests, offline (a scripted fake stands in for Gemini)
 python tests/live_smoke.py       # end-to-end against a running server with your real key
 ```
 
 `live_smoke.py` prints what the AI actually said at each step, which is the quickest way to
 judge answer quality after changing a prompt.
+
+### Checks on the AI's behaviour
+
+- **Reference check** (`app/services/eval_checks.py`): the tutor is told to name files and line numbers.
+  `check_references(repo_path, reply)` reads the repository and counts how many of those references are real
+  (file exists, lines inside the file), so a hallucinated-reference rate can be measured on any set of tutor replies.
+  It is tested on its own; it has not yet been run over a batch of live tutor answers, so this README reports no rate.
+- **Prompt-injection tests** (`tests/test_assistant_injection.py`): a stand-in model that *obeys* instructions planted
+  in a repo file tries to write outside the repo, edit `.git` and run a shell command. Every attempt is refused and
+  nothing changes on disk. This tests the sandbox, not whether a real model would obey; the system prompt
+  also tells the model that file text is data, not instructions.
 
 ## Scope
 
