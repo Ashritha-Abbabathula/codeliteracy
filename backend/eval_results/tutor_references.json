@@ -1,0 +1,80 @@
+{
+  "repo": "backend",
+  "n_replies": 10,
+  "references_cited": 24,
+  "references_not_real": 0,
+  "hallucinated_reference_rate": 0.0,
+  "note": "small set of 10 questions about this repository; indicative only",
+  "replies": [
+    {
+      "question": "How does the assistant make sure it only changes files inside the connected repository?",
+      "reply": "The assistant ensures file operations stay within the repository by resolving the target path and validating it against the repository's root directory. This logic is implemented in `app/services/assistant_service.py` within the `_safe_path` function (lines 155-161).\n\nWhen a user requests a file action, `_safe_path` takes the `repo_root` and the requested relative path, resolves both into absolute paths, and checks if the resulting file path is either equal to the root or nested inside it. If the resolved path falls outside the `root` (or is not a child of it), the function raises an `AssistantError` and refuses access. This prevents directory traversal attacks where a malicious request might try to use `../` to access sensitive files on your host system outside of the intended project folder.",
+      "cited": 1,
+      "valid": 1,
+      "bad": []
+    },
+    {
+      "question": "Where are the quiz questions generated and how are they validated?",
+      "reply": "Quiz generation logic resides in `app/services/quiz_service.py`, while validation and tracking occur in `app/routers/quiz.py` and `app/routers/assistant.py`. \n\nQuestions are created using an LLM via the `generate_quizzes_for_change` function (`app/services/quiz_service.py` lines 119-137) or `generate_quizzes_for_file` (lines 140-145). These functions format context—like code diffs or file contents—into a prompt that instructs the LLM to return a JSON object containing questions, options, and explanations. \n\nValidation happens in two stages:\n1. **Structure Validation:** `app/services/quiz_service.py` uses `clean_quiz` (lines 58-71) to ensure the AI's output is a dictionary, contains exactly four options, and has a valid, non-empty question string.\n2. **Server-Side Verification:** The server never sends the correct answer to the frontend. When a learner submits an answer via `answer_quiz` in `app/routers/quiz.py` (lines 87-129), the server checks `payload.selected_index` against the server-side stored `correct_index`. This keeps the \"truth\" secure on the backend and forces the learner to engage with the material rather than guessing.\n\nAn analogy: Think of the server as an invigilator who holds the answer key. The student submits their answer, and the invigilator verifies it against their master list without ever showing the key beforehand.",
+      "cited": 3,
+      "valid": 3,
+      "bad": []
+    },
+    {
+      "question": "How does the tutor chat decide which files to show the model?",
+      "reply": "The tutor decides which files to show the model by searching for content relevant to the user's specific question. This logic is handled in `app/services/chat_service.py` (line 14), which imports `find_relevant_files` from `app/services/repo_context.py`.\n\nWhen a user sends a message in `app/routers/chat.py` (lines 59-63), the tutor uses `find_relevant_files` to look through the repository. It identifies files that might answer the query—for example, if a user asks 'where is the Item class defined?', the search looks for files like `app/models.py` that contain the relevant definition (shown in `tests/test_teaching_features.py` lines 64-66). \n\nBeyond just searching, the system also ensures the tutor has the necessary context to stay grounded:\n* **The current file:** If the user has a specific file open and lines selected, that excerpt is explicitly included so the tutor sees exactly what the user is looking at (`app/services/chat_service.py` lines 56-62).\n* **Repository metadata:** The prompt always includes a 'repo digest' (a summary of the file list and key modules) to provide a high-level map of the codebase, ensuring the tutor doesn't give answers that contradict the project's overall structure (`app/services/chat_service.py` line 14).",
+      "cited": 6,
+      "valid": 6,
+      "bad": []
+    },
+    {
+      "question": "What happens when the Gemini API is rate limited?",
+      "reply": "When the Gemini API returns a 429 rate limit error, the application attempts a single retry after a 10-second delay. If that retry also fails, it stops and raises an `LLMCallError` with a user-friendly message explaining that the rate limit was hit, as shown in `app/services/llm_client.py` lines 29 and 46-47.\n\nThis behavior is verified in the test suite within `tests/test_assistant_and_units.py` lines 289-294. The test mocks the API client to simulate two consecutive 429 responses; the code confirms that the service makes exactly two attempts before stopping and surfacing the error to the user. This design prevents the application from spamming the API while ensuring the user knows exactly why their request didn't go through, rather than simply failing silently.",
+      "cited": 2,
+      "valid": 2,
+      "bad": []
+    },
+    {
+      "question": "How is a user's data kept separate from other users?",
+      "reply": "User data is kept separate by filtering database queries using the `user_id` linked to the current authenticated session. Every time a user interacts with their resources, the application uses helper functions from `app/deps.py` to identify who they are and apply a restriction to any SQL query being executed.\n\nFor example, in `app/routers/auth.py` lines 98-107, the code uses `user.id` to ensure it only counts repositories, notebook entries, or quizzes that specifically belong to the authenticated user. Similarly, `app/deps.py` (lines 42-45) provides a function `owned_by(column, user)` which acts as a filter; this ensures that if you request a repository by its ID, the database query will only return it if the `user_id` in that row matches the current user's session. Without this, one user could potentially see or modify data belonging to another user simply by guessing a resource ID.",
+      "cited": 2,
+      "valid": 2,
+      "bad": []
+    },
+    {
+      "question": "Where does the dependency graph come from and how are imports found?",
+      "reply": "The dependency graph is generated in `app/services/dependency_graph.py` by parsing Python files to identify their internal structure. The function `build_dependency_graph` (lines 106-127) coordinates this by first using `_discover_modules` (line 108) to locate all files in the repository and then mapping their imports to other files within the same project.\n\nImports are found using the Python `ast` (Abstract Syntax Tree) module, which is imported on line 7. This allows the code to inspect the structure of your source code without running it. In `app/services/dependency_graph.py` (lines 80-103), the code looks specifically for `import` and `from ... import ...` statements, resolves the destination paths relative to the repo root, and filters out external packages so that the resulting graph only includes internal file relationships.",
+      "cited": 1,
+      "valid": 1,
+      "bad": []
+    },
+    {
+      "question": "What does the assistant do when its edit would create a Python syntax error?",
+      "reply": "The repository does not appear to have an explicit \"syntax checker\" that halts the assistant if it creates invalid code. Instead, the system relies on the LLM's own reasoning capabilities and the `run_assistant` loop to manage tasks. In `app/services/assistant_service.py` lines 289-294, the `write_file` tool handles updates by accepting `content` as a string and applying it directly via `_apply_write` without running a Python parser or `ast` check before saving.\n\nHowever, the `AssistantError` exception (lines 151-152) and the `MAX_TOOL_ITERATIONS` limit (line 25) prevent the assistant from getting stuck in an infinite loop of broken attempts. If the AI produces bad code, it might fail during its own `verify` phase (line 94 in `app/routers/assistant.py`), or you, as the user, would see the broken code in the `AssistantResponse` and could use `undo_change` (line 207) to revert the files to their pre-change state.",
+      "cited": 2,
+      "valid": 2,
+      "bad": []
+    },
+    {
+      "question": "How are changes undone after the assistant edits files?",
+      "reply": "The assistant uses a snapshot mechanism to undo changes. When `run_assistant` (in `app/services/assistant_service.py`) performs a file write, it records the file's state before and after the modification. This is stored as a JSON object in the `snapshot_json` field of the `AssistantChange` model (see `app/models.py`, line 65).\n\nWhen a user triggers an undo, the `undo_change` function in `app/routers/assistant.py` (lines 207-220) is called. It first checks `_can_undo` (lines 76-84), which verifies that the files on disk still match the 'after' state recorded in the snapshot (using SHA-1 hashes). If the files haven't been tampered with since the assistant last touched them, it restores the 'before' content from the snapshot and marks the change as `reverted` to prevent repeated undos.",
+      "cited": 3,
+      "valid": 3,
+      "bad": []
+    },
+    {
+      "question": "Which function builds the repository digest and what is in it?",
+      "reply": "The function that builds the repository digest is `repo_digest` found in `app/services/repo_context.py` (lines 148-160). It creates a compact summary of the project to help the AI understand the repository's structure without being overwhelmed by raw code.\n\nThe digest includes three main components:\n* A summary line stating the repository name, the total number of text files, and the count of Python files (line 153).\n* A file tree list, showing the relative path and line count for each file (line 155).\n* Truncation indicators if the file count exceeds the `max_tree` limit (lines 156-157).",
+      "cited": 1,
+      "valid": 1,
+      "bad": []
+    },
+    {
+      "question": "Where are passwords or tokens handled, and how?",
+      "reply": "Authentication tokens and user credentials are primarily managed within `app/routers/auth.py`. When a user logs in via `login` (line 78), the system validates their credentials and generates a session token, which is then stored in the database as a `UserSession` model (defined in `app/models.py` line 32).\n\nTo keep track of who is making a request, the `app/deps.py` file provides helper functions. Specifically, `extract_token` (line 15) pulls the token from the request headers, and `get_current_user` (line 32) uses that token to verify the user against the database. This ensures that every request is tied to a specific `User` identity without requiring the user to re-enter their password on every interaction.",
+      "cited": 3,
+      "valid": 3,
+      "bad": []
+    }
+  ]
+}

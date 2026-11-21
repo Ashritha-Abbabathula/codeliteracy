@@ -106,7 +106,7 @@ judge answer quality after changing a prompt.
 - **Reference check** (`app/services/eval_checks.py`): the tutor is told to name files and line numbers.
   `check_references(repo_path, reply)` reads the repository and counts how many of those references are real
   (file exists, lines inside the file), so a hallucinated-reference rate can be measured on any set of tutor replies.
-  It is tested on its own; it has not yet been run over a batch of live tutor answers, so this README reports no rate.
+  `python scripts/live_reference_check.py` asks the real tutor 10 questions about this repository: it cited 24 references and all 24 were real (0 hallucinated; `eval_results/tutor_references.json`). Limits: ten questions, one run, and the check proves the file and line range exist, not that the cited lines say what the tutor claims.
 - **Prompt-injection tests** (`tests/test_assistant_injection.py`): a stand-in model that *obeys* instructions planted
   in a repo file tries to write outside the repo, edit `.git` and run a shell command. Every attempt is refused and
   nothing changes on disk. This tests the sandbox, not whether a real model would obey; the system prompt
