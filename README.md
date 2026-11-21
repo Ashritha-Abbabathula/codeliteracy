@@ -94,7 +94,7 @@ on the server, and only a genuinely correct answer reaches the notebook.
 ```bash
 cd backend
 pip install -r requirements-dev.txt
-python -m pytest                 # 79 tests, offline (a scripted fake stands in for Gemini)
+python -m pytest                 # 81 tests, offline (a scripted fake stands in for Gemini)
 python tests/live_smoke.py       # end-to-end against a running server with your real key
 ```
 
